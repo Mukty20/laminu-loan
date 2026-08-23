@@ -1,0 +1,6 @@
+# Lamuni .gitignore
+.env
+vendor/
+*.log
+.DS_Store
+Thumbs.db

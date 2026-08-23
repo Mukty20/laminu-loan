@@ -1,0 +1,425 @@
+/*
+ * Lamuni — Custom Design System
+ * Overrides Bootstrap 5 defaults to match the Lamuni visual brief:
+ * neutral off-white bg, near-black ink, muted deep-indigo accent,
+ * flat surfaces, minimal 1px borders, near-sharp corners.
+ */
+
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ── Design Tokens ── */
+:root {
+  /* Palette */
+  --lm-bg:          #f5f4f0;   /* off-white page background */
+  --lm-surface:     #ffffff;   /* card / panel surface */
+  --lm-ink:         #1a1a1a;   /* primary text */
+  --lm-ink-muted:   #5a5a5a;   /* secondary text */
+  --lm-border:      #d8d5cc;   /* 1px borders */
+  --lm-accent:      #3d3b7a;   /* deep-indigo primary action */
+  --lm-accent-dark: #2d2b5f;   /* hover state */
+  --lm-accent-light:#eeedf7;   /* light tint for badges / highlights */
+
+  /* Status colours — muted / earthy */
+  --lm-pending:     #b5903a;   /* muted ochre */
+  --lm-pending-bg:  #fdf6e3;
+  --lm-approved:    #556b2f;   /* muted olive-green */
+  --lm-approved-bg: #f0f4e8;
+  --lm-active:      #3a6b55;   /* muted teal-green */
+  --lm-active-bg:   #e8f4ef;
+  --lm-rejected:    #8b3a3a;   /* muted brick-red */
+  --lm-rejected-bg: #f8eded;
+  --lm-completed:   #4a4a6a;   /* muted indigo-grey */
+  --lm-completed-bg:#ededf5;
+
+  /* Typography */
+  --lm-font:        'Inter', system-ui, sans-serif;
+  --lm-radius:      2px;       /* near-sharp corners */
+  --lm-radius-sm:   2px;
+
+  /* Spacing */
+  --lm-nav-h:       58px;
+}
+
+/* ── Base Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--lm-font);
+  font-size: 0.9375rem;       /* 15px */
+  background-color: var(--lm-bg);
+  color: var(--lm-ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--lm-accent); text-decoration: none; }
+a:hover { color: var(--lm-accent-dark); text-decoration: underline; }
+
+/* ── Override Bootstrap Theme Colours ── */
+.btn-primary {
+  background-color: var(--lm-accent);
+  border-color: var(--lm-accent);
+  color: #fff;
+  border-radius: var(--lm-radius);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: background-color 0.18s, border-color 0.18s;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--lm-accent-dark);
+  border-color: var(--lm-accent-dark);
+  color: #fff;
+}
+.btn-outline-primary {
+  color: var(--lm-accent);
+  border-color: var(--lm-accent);
+  border-radius: var(--lm-radius);
+  font-weight: 500;
+}
+.btn-outline-primary:hover {
+  background-color: var(--lm-accent);
+  border-color: var(--lm-accent);
+  color: #fff;
+}
+.btn-sm { font-size: 0.8125rem; padding: 0.25rem 0.625rem; }
+.btn {
+  border-radius: var(--lm-radius);
+  font-weight: 500;
+}
+
+/* Remove Bootstrap box shadows / glow on focus */
+.btn:focus, .form-control:focus, .form-select:focus {
+  box-shadow: 0 0 0 2px rgba(61,59,122,0.2);
+  border-color: var(--lm-accent);
+}
+
+/* ── Navigation ── */
+.navbar {
+  background-color: var(--lm-surface) !important;
+  border-bottom: 1px solid var(--lm-border);
+  height: var(--lm-nav-h);
+  padding: 0 1.25rem;
+}
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--lm-ink) !important;
+  letter-spacing: -0.01em;
+}
+.navbar-brand span { color: var(--lm-accent); }
+.nav-link {
+  color: var(--lm-ink-muted) !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.nav-link:hover, .nav-link.active { color: var(--lm-ink) !important; }
+.nav-link.active { border-bottom: 2px solid var(--lm-accent); padding-bottom: 0; }
+
+/* ── Cards ── */
+.card {
+  background: var(--lm-surface);
+  border: 1px solid var(--lm-border);
+  border-radius: var(--lm-radius);
+  box-shadow: none;
+}
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--lm-border);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--lm-ink-muted);
+  padding: 0.75rem 1.25rem;
+}
+
+/* ── Stat Cards (Admin Dashboard) ── */
+.stat-card {
+  border: 1px solid var(--lm-border);
+  border-left: 3px solid var(--lm-accent);
+  border-radius: var(--lm-radius);
+  background: var(--lm-surface);
+  padding: 1.25rem 1.5rem;
+}
+.stat-card .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--lm-ink);
+  line-height: 1.1;
+}
+.stat-card .stat-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--lm-ink-muted);
+  margin-top: 0.25rem;
+}
+
+/* ── Status Badges ── */
+.badge-pending {
+  background-color: var(--lm-pending-bg);
+  color: var(--lm-pending);
+  border: 1px solid var(--lm-pending);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: var(--lm-radius-sm);
+}
+.badge-approved, .badge-active {
+  background-color: var(--lm-approved-bg);
+  color: var(--lm-approved);
+  border: 1px solid var(--lm-approved);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: var(--lm-radius-sm);
+}
+.badge-active {
+  background-color: var(--lm-active-bg);
+  color: var(--lm-active);
+  border-color: var(--lm-active);
+}
+.badge-rejected {
+  background-color: var(--lm-rejected-bg);
+  color: var(--lm-rejected);
+  border: 1px solid var(--lm-rejected);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: var(--lm-radius-sm);
+}
+.badge-completed {
+  background-color: var(--lm-completed-bg);
+  color: var(--lm-completed);
+  border: 1px solid var(--lm-completed);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: var(--lm-radius-sm);
+}
+
+/* ── Tables ── */
+.table {
+  font-size: 0.875rem;
+  color: var(--lm-ink);
+}
+.table thead th {
+  border-bottom: 1px solid var(--lm-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--lm-ink-muted);
+  background: var(--lm-bg);
+  padding: 0.625rem 0.875rem;
+}
+.table tbody td { padding: 0.75rem 0.875rem; border-bottom: 1px solid var(--lm-border); vertical-align: middle; }
+.table tbody tr:last-child td { border-bottom: none; }
+.table-hover tbody tr:hover { background-color: var(--lm-bg); }
+.table-responsive { border: 1px solid var(--lm-border); border-radius: var(--lm-radius); }
+
+/* ── Forms ── */
+.form-control, .form-select {
+  border: 1px solid var(--lm-border);
+  border-radius: var(--lm-radius);
+  font-size: 0.9375rem;
+  color: var(--lm-ink);
+  background: var(--lm-surface);
+  transition: border-color 0.15s;
+}
+.form-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--lm-ink);
+  margin-bottom: 0.3rem;
+}
+.form-text { color: var(--lm-ink-muted); font-size: 0.8rem; }
+.invalid-feedback { font-size: 0.8rem; }
+
+/* ── Auth Pages ── */
+.auth-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--lm-bg);
+  padding: 2rem 1rem;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--lm-surface);
+  border: 1px solid var(--lm-border);
+  border-radius: var(--lm-radius);
+  padding: 2.5rem 2rem;
+}
+.auth-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--lm-ink);
+  margin-bottom: 0.25rem;
+}
+.auth-logo span { color: var(--lm-accent); }
+.auth-subtitle {
+  font-size: 0.875rem;
+  color: var(--lm-ink-muted);
+  margin-bottom: 2rem;
+}
+
+/* ── Page Layout ── */
+.page-header {
+  padding: 1.5rem 0 1rem;
+  border-bottom: 1px solid var(--lm-border);
+  margin-bottom: 1.5rem;
+}
+.page-header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+.page-header p {
+  font-size: 0.875rem;
+  color: var(--lm-ink-muted);
+  margin: 0.25rem 0 0;
+}
+
+/* ── Alerts ── */
+.alert {
+  border-radius: var(--lm-radius);
+  font-size: 0.875rem;
+  border-width: 1px;
+}
+.alert-danger  { background: var(--lm-rejected-bg);  border-color: var(--lm-rejected);  color: var(--lm-rejected); }
+.alert-success { background: var(--lm-approved-bg);  border-color: var(--lm-approved);  color: var(--lm-approved); }
+.alert-info    { background: var(--lm-accent-light); border-color: var(--lm-accent);    color: var(--lm-accent); }
+.alert-warning { background: var(--lm-pending-bg);   border-color: var(--lm-pending);   color: var(--lm-pending); }
+
+/* ── Notification Bell Badge ── */
+.notif-badge {
+  background: var(--lm-rejected);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  vertical-align: super;
+  line-height: 1;
+}
+
+/* ── Hero (Landing) ── */
+.hero {
+  padding: 5rem 0 4rem;
+  text-align: center;
+}
+.hero h1 {
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--lm-ink);
+}
+.hero p {
+  font-size: 1.0625rem;
+  color: var(--lm-ink-muted);
+  max-width: 520px;
+  margin: 1rem auto 2rem;
+}
+.hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+/* ── Language Toggle ── */
+.lang-toggle {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--lm-border);
+  border-radius: var(--lm-radius);
+  overflow: hidden;
+}
+.lang-btn {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--lm-ink-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.lang-btn.active {
+  background: var(--lm-accent);
+  color: #fff;
+}
+
+/* ── Notification List ── */
+.notif-item {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--lm-border);
+  font-size: 0.875rem;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item.unread { background: var(--lm-accent-light); }
+.notif-item .notif-time { font-size: 0.75rem; color: var(--lm-ink-muted); margin-top: 0.2rem; }
+
+/* ── Sidebar (Admin) ── */
+.sidebar {
+  width: 220px;
+  min-height: calc(100vh - var(--lm-nav-h));
+  background: var(--lm-surface);
+  border-right: 1px solid var(--lm-border);
+  padding: 1.25rem 0;
+  flex-shrink: 0;
+}
+.sidebar-link {
+  display: block;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--lm-ink-muted);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  border-left: 2px solid transparent;
+}
+.sidebar-link:hover { background: var(--lm-bg); color: var(--lm-ink); text-decoration: none; }
+.sidebar-link.active {
+  background: var(--lm-accent-light);
+  color: var(--lm-accent);
+  border-left-color: var(--lm-accent);
+  font-weight: 600;
+}
+.admin-layout {
+  display: flex;
+  min-height: calc(100vh - var(--lm-nav-h));
+}
+.admin-main {
+  flex: 1;
+  padding: 1.75rem 2rem;
+  overflow-x: hidden;
+}
+
+/* ── BVN masked display ── */
+.bvn-masked {
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  color: var(--lm-ink-muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .admin-layout { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    border-right: none;
+    border-bottom: 1px solid var(--lm-border);
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+  .sidebar-link { padding: 0.4rem 0.75rem; border-left: none; border-radius: var(--lm-radius); }
+  .sidebar-link.active { border-left: none; }
+  .admin-main { padding: 1rem; }
+  .auth-card { padding: 1.75rem 1.25rem; }
+  .stat-card { margin-bottom: 0.75rem; }
+}
