@@ -15,42 +15,34 @@ A working prototype of a three-tier PHP/MySQL loan management system built as a 
 
 ## Setup Instructions
 
-### 1. Copy project into XAMPP
+### 1. Clone the repository
 
-Copy the entire `lamuni/` folder into your XAMPP `htdocs` directory:
+Install [Git](https://git-scm.com/downloads) and [XAMPP](https://www.apachefriends.org/), then clone the repository:
+
+```powershell
+git clone https://github.com/Mukty20/laminu-loan.git
+```
+
+The application files are in the repository's `lamuni/` subfolder. Copy that folder (the one containing `public`, `src`, and `database`) to:
 
 ```
 C:\xampp\htdocs\lamuni\
 ```
 
-### 2. Start XAMPP
+Confirm that `C:\xampp\htdocs\lamuni\public\index.php` exists. The app uses `/lamuni/public/` in its links, so keep the folder name `lamuni`.
+
+### 2. Start XAMPP and configure the database connection
 
 Open the XAMPP Control Panel and start **Apache** and **MySQL**.
 
-### 3. Create the database
+In PowerShell, from `C:\xampp\htdocs\lamuni`, create your local `.env` file:
 
-Open phpMyAdmin at `http://localhost/phpmyadmin` and:
-
-1. Click **New** → name the database `lamuni` → click **Create**.
-2. Select the `lamuni` database.
-3. Click **Import** → choose `database/schema.sql` → click **Go**.
-4. Click **Import** again → choose `database/seed.sql` → click **Go**.
-
-**Or via command line:**
-```bash
-mysql -u root -p -e "CREATE DATABASE lamuni CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p lamuni < database/schema.sql
-mysql -u root -p lamuni < database/seed.sql
-```
-
-### 4. Configure database credentials
-
-Copy `.env.example` to `.env`:
-```bash
-copy .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
 The default XAMPP configuration uses:
+
 ```
 DB_HOST=localhost
 DB_NAME=lamuni
@@ -58,9 +50,23 @@ DB_USER=root
 DB_PASS=
 ```
 
-If you have set a MySQL root password in XAMPP, update `DB_PASS` accordingly. Alternatively, edit `src/Database.php` directly (look for the fallback constants).
+If MySQL root has a password on that computer, add it to `DB_PASS` in `.env`. Do not commit `.env`.
 
-### 5. Create demo accounts
+### 3. Create the database schema
+
+Open phpMyAdmin at `http://localhost/phpmyadmin` and:
+
+1. Click **New** → name the database `lamuni` → click **Create**.
+2. Select the `lamuni` database.
+3. Click **Import** → choose `database/schema.sql` → click **Go**.
+
+**Or from Command Prompt (not PowerShell), in the project folder:**
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root -p -e "CREATE DATABASE lamuni CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+C:\xampp\mysql\bin\mysql.exe -u root -p lamuni < database\schema.sql
+```
+
+### 4. Create demo accounts, then load sample data
 
 Visit the one-time setup page to insert demo user accounts with properly hashed passwords:
 
@@ -68,9 +74,15 @@ Visit the one-time setup page to insert demo user accounts with properly hashed 
 http://localhost/lamuni/public/setup.php
 ```
 
-You should see a confirmation page. **Delete `public/setup.php` after running it** (or it will refuse to run again once accounts exist).
+You should see a confirmation page. **Next, import `database/seed.sql`** in phpMyAdmin (select `lamuni` → **Import** → choose the file → **Go**) or run:
 
-### 6. Open the application
+```cmd
+C:\xampp\mysql\bin\mysql.exe -u root -p lamuni < database\seed.sql
+```
+
+Import the seed only after setup creates the demo users: its sample loans, repayment history, and notifications reference those users. After seeding, **delete `public/setup.php`** for security (it will refuse to run again once accounts exist).
+
+### 5. Open the application
 
 ```
 http://localhost/lamuni/public/
