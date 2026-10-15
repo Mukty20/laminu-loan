@@ -19,14 +19,18 @@ class Loan
      */
     public static function apply(int $userId, float $amount, int $durationMonths, string $purpose): int|string
     {
-        if ($amount < 1000) {
-            return 'Loan amount must be at least ₦1,000.';
+        if (!is_finite($amount) || $amount < 1000 || $amount > 9999999999.99) {
+            return 'Loan amount must be between ₦1,000 and ₦9,999,999,999.99.';
         }
-        if ($durationMonths < 1 || $durationMonths > 60) {
-            return 'Duration must be between 1 and 60 months.';
+        if ($durationMonths < 3 || $durationMonths > 60) {
+            return 'Duration must be between 3 and 60 months.';
         }
-        if (empty(trim($purpose))) {
+        $purpose = trim($purpose);
+        if ($purpose === '') {
             return 'Please state the purpose of the loan.';
+        }
+        if (strlen($purpose) > 5000) {
+            return 'Purpose must be 5,000 characters or fewer.';
         }
 
         $pdo = Database::getConnection();
@@ -38,7 +42,7 @@ class Loan
             ':user_id'         => $userId,
             ':amount'          => $amount,
             ':duration_months' => $durationMonths,
-            ':purpose'         => htmlspecialchars(strip_tags($purpose)),
+            ':purpose'         => $purpose,
         ]);
         $loanId = (int)$pdo->lastInsertId();
 
@@ -94,6 +98,19 @@ class Loan
         return $stmt->fetchAll();
     }
 
+    /** List loans with a positive balance that can accept repayments. */
+    public static function listRepayable(): array
+    {
+        $pdo = Database::getConnection();
+        return $pdo->query(
+            "SELECT l.*, u.name AS borrower_name, u.email AS borrower_email
+               FROM loans l
+               JOIN users u ON u.id = l.user_id
+              WHERE l.status IN ('Active', 'Approved') AND l.balance > 0
+           ORDER BY l.applied_at DESC"
+        )->fetchAll();
+    }
+
     /**
      * Get a single loan by ID, with borrower and admin info.
      */
@@ -125,64 +142,78 @@ class Loan
             return false;
         }
 
-        $loan = self::getById($loanId);
-        if (!$loan || $loan['status'] !== 'Pending') {
-            return false;
-        }
-
         $pdo = Database::getConnection();
+        $pdo->beginTransaction();
 
-        // Compute repayment schedule on approval
-        $newStatus   = $decision;
-        $balance     = null;
-        $monthlyDue  = null;
+        try {
+            $lock = $pdo->prepare('SELECT status FROM loans WHERE id = :id FOR UPDATE');
+            $lock->execute([':id' => $loanId]);
+            if ($lock->fetchColumn() !== 'Pending') {
+                $pdo->rollBack();
+                return false;
+            }
 
-        if ($decision === 'Approved') {
-            $newStatus  = 'Active';
-            $balance    = (float)$loan['amount'];
-            $monthlyDue = self::calculateMonthlyDue((float)$loan['amount'], (int)$loan['duration_months']);
+            $loan = self::getById($loanId);
+            if (!$loan) {
+                $pdo->rollBack();
+                return false;
+            }
+
+            // Compute repayment schedule on approval
+            $newStatus  = $decision;
+            $balance    = null;
+            $monthlyDue = null;
+
+            if ($decision === 'Approved') {
+                $newStatus  = 'Active';
+                $balance    = (float)$loan['amount'];
+                $monthlyDue = self::calculateMonthlyDue((float)$loan['amount'], (int)$loan['duration_months']);
+            }
+
+            $note = trim(strip_tags($note));
+            $stmt = $pdo->prepare(
+                "UPDATE loans
+                    SET status = :status, decision_at = NOW(), decision_by = :admin_id,
+                        decision_note = :note, balance = :balance, monthly_due = :monthly_due
+                  WHERE id = :id"
+            );
+            $stmt->execute([
+                ':status'      => $newStatus,
+                ':admin_id'    => $adminId,
+                ':note'        => $note,
+                ':balance'     => $balance,
+                ':monthly_due' => $monthlyDue,
+                ':id'          => $loanId,
+            ]);
+
+            $stmt = $pdo->prepare(
+                "INSERT INTO approvals (loan_id, admin_id, decision, note)
+                 VALUES (:loan_id, :admin_id, :decision, :note)"
+            );
+            $stmt->execute([
+                ':loan_id'  => $loanId,
+                ':admin_id' => $adminId,
+                ':decision' => $decision,
+                ':note'     => $note,
+            ]);
+
+            $amount = self::formatAmount((float)$loan['amount']);
+            if ($decision === 'Approved') {
+                $msg = "Congratulations! Your loan of {$amount} has been approved. Please see your dashboard for repayment details.";
+            } else {
+                $msg = "Your loan application of {$amount} was not approved. Note: {$note}";
+            }
+            Notification::create((int)$loan['user_id'], $msg);
+            AuditLog::log($adminId, "Admin {$decision} Loan #{$loanId} for user {$loan['borrower_email']}");
+
+            $pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
-
-        $stmt = $pdo->prepare(
-            "UPDATE loans
-                SET status = :status, decision_at = NOW(), decision_by = :admin_id,
-                    decision_note = :note, balance = :balance, monthly_due = :monthly_due
-              WHERE id = :id"
-        );
-        $stmt->execute([
-            ':status'      => $newStatus,
-            ':admin_id'    => $adminId,
-            ':note'        => htmlspecialchars(strip_tags($note)),
-            ':balance'     => $balance,
-            ':monthly_due' => $monthlyDue,
-            ':id'          => $loanId,
-        ]);
-
-        // Approvals history table
-        $stmt2 = $pdo->prepare(
-            "INSERT INTO approvals (loan_id, admin_id, decision, note)
-             VALUES (:loan_id, :admin_id, :decision, :note)"
-        );
-        $stmt2->execute([
-            ':loan_id'  => $loanId,
-            ':admin_id' => $adminId,
-            ':decision' => $decision,
-            ':note'     => htmlspecialchars(strip_tags($note)),
-        ]);
-
-        // Notification for borrower
-        $amount = self::formatAmount((float)$loan['amount']);
-        if ($decision === 'Approved') {
-            $msg = "Congratulations! Your loan of {$amount} has been approved. Please see your dashboard for repayment details.";
-        } else {
-            $msg = "Your loan application of {$amount} was not approved. Note: {$note}";
-        }
-        Notification::create((int)$loan['user_id'], $msg);
-
-        // Audit
-        AuditLog::log($adminId, "Admin {$decision} Loan #{$loanId} for user {$loan['borrower_email']}");
-
-        return true;
     }
 
     /**

@@ -7,26 +7,40 @@ require_once __DIR__ . '/../../src/Repayment.php';
 Auth::requireAdmin();
 
 $error   = '';
-$success = '';
+$success = $_SESSION['lamuni_flash_repayment'] ?? '';
+unset($_SESSION['lamuni_flash_repayment']);
 
 // Handle repayment POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $loanId = (int)($_POST['loan_id'] ?? 0);
-    $amount = (float)($_POST['amount'] ?? 0);
-
-    $result = Repayment::record($loanId, $amount, Auth::userId());
-    if ($result === true) {
-        $success = "Repayment of " . Loan::formatAmount($amount) . " recorded for Loan #{$loanId}.";
+    if (!Auth::verifyCsrfToken($_POST['_csrf'] ?? null)) {
+        $error = 'Your session expired. Please reload the page and try again.';
     } else {
-        $error = $result;
+        $loanId = (int)($_POST['loan_id'] ?? 0);
+        $amount = (float)($_POST['amount'] ?? 0);
+
+        $result = Repayment::record($loanId, $amount, Auth::userId());
+        if ($result === true) {
+            $_SESSION['lamuni_flash_repayment'] = "Repayment of " . Loan::formatAmount($amount) . " recorded for Loan #{$loanId}.";
+            header('Location: /lamuni/public/admin/repayments.php?loan_id=' . $loanId);
+            exit;
+        } else {
+            $error = $result;
+        }
     }
 }
 
 // Active loans for the selector
-$activeLoans = Loan::listAll('Active');
+$activeLoans = Loan::listRepayable();
 $selectedLoanId = (int)($_GET['loan_id'] ?? $_POST['loan_id'] ?? 0);
 $selectedLoan   = $selectedLoanId ? Loan::getById($selectedLoanId) : null;
 $repaymentHistory = $selectedLoan ? Repayment::listByLoan($selectedLoanId) : [];
+$canRecordRepayment = $selectedLoan
+    && in_array($selectedLoan['status'], ['Active', 'Approved'], true)
+    && $selectedLoan['balance'] !== null
+    && (float)$selectedLoan['balance'] > 0;
+$suggestedRepayment = $canRecordRepayment
+    ? min((float)$selectedLoan['monthly_due'], (float)$selectedLoan['balance'])
+    : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -102,7 +116,7 @@ $repaymentHistory = $selectedLoan ? Repayment::listByLoan($selectedLoanId) : [];
               <button type="submit" class="btn btn-outline-primary btn-sm" id="load-loan-btn">Load Loan</button>
             </form>
 
-            <?php if ($selectedLoan): ?>
+            <?php if ($selectedLoan && $canRecordRepayment): ?>
               <div style="background:var(--lm-bg);border:1px solid var(--lm-border);border-radius:var(--lm-radius);padding:1rem;margin-bottom:1.25rem;font-size:.875rem">
                 <div class="mb-1"><strong><?= htmlspecialchars($selectedLoan['borrower_name']) ?></strong></div>
                 <div style="color:var(--lm-ink-muted)"><?= htmlspecialchars($selectedLoan['borrower_email']) ?></div>
@@ -122,13 +136,14 @@ $repaymentHistory = $selectedLoan ? Repayment::listByLoan($selectedLoanId) : [];
               </div>
 
               <form method="post" action="">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="loan_id" value="<?= (int)$selectedLoan['id'] ?>">
                 <div class="mb-3">
                   <label class="form-label" for="repay-amount">Payment Amount (₦)</label>
                   <input type="number" class="form-control" id="repay-amount" name="amount"
-                         step="0.01" min="1"
+                         step="0.01" min="0.01"
                          max="<?= (float)$selectedLoan['balance'] ?>"
-                         value="<?= (float)$selectedLoan['monthly_due'] ?>"
+                         value="<?= number_format($suggestedRepayment, 2, '.', '') ?>"
                          required placeholder="Enter amount paid">
                   <div class="form-text">Monthly due: <?= Loan::formatAmount((float)$selectedLoan['monthly_due']) ?></div>
                 </div>
@@ -137,6 +152,8 @@ $repaymentHistory = $selectedLoan ? Repayment::listByLoan($selectedLoanId) : [];
                   Record Repayment
                 </button>
               </form>
+            <?php elseif ($selectedLoan): ?>
+              <p style="font-size:.875rem;color:var(--lm-ink-muted)">This loan is no longer accepting repayments.</p>
             <?php elseif (count($activeLoans) === 0): ?>
               <p style="font-size:.875rem;color:var(--lm-ink-muted)">No active loans to record repayments for.</p>
             <?php else: ?>
@@ -186,6 +203,6 @@ $repaymentHistory = $selectedLoan ? Repayment::listByLoan($selectedLoanId) : [];
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/lamuni/public/assets/js/app.js"></script>
+<script src="/lamuni/public/assets/js/app.js?v=2"></script>
 </body>
 </html>

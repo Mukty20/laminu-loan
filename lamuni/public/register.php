@@ -11,24 +11,31 @@ if (!empty($_SESSION['user_id'])) {
 }
 
 $error   = '';
-$success = '';
+$success = $_SESSION['lamuni_flash_register'] ?? '';
+unset($_SESSION['lamuni_flash_register']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name     = trim($_POST['name']     ?? '');
-    $email    = trim($_POST['email']    ?? '');
-    $phone    = trim($_POST['phone']    ?? '');
-    $bvn      = trim($_POST['bvn']      ?? '');
-    $password = $_POST['password']      ?? '';
-    $confirm  = $_POST['password_confirm'] ?? '';
-
-    if ($password !== $confirm) {
-        $error = 'Passwords do not match. / Kalmomin sirri ba su dace ba.';
+    if (!Auth::verifyCsrfToken($_POST['_csrf'] ?? null)) {
+        $error = 'Your session expired. Please reload the page and try again.';
     } else {
-        $result = Auth::register($name, $email, $phone, $bvn ?: null, $password);
-        if ($result === true) {
-            $success = 'Account created successfully! You can now sign in.';
+        $name     = trim($_POST['name']     ?? '');
+        $email    = trim($_POST['email']    ?? '');
+        $phone    = trim($_POST['phone']    ?? '');
+        $bvn      = trim($_POST['bvn']      ?? '');
+        $password = $_POST['password']      ?? '';
+        $confirm  = $_POST['password_confirm'] ?? '';
+
+        if ($password !== $confirm) {
+        $error = 'Passwords do not match. / Kalmomin sirri ba su dace ba.';
         } else {
-            $error = $result;
+            $result = Auth::register($name, $email, $phone, $bvn ?: null, $password);
+            if ($result === true) {
+                $_SESSION['lamuni_flash_register'] = 'Account created successfully! You can now sign in.';
+                header('Location: /lamuni/public/register.php');
+                exit;
+            } else {
+                $error = $result;
+            }
         }
     }
 }
@@ -74,13 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php else: ?>
 
     <form id="register-form" method="post" action="" novalidate>
+      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
       <!-- Full Name -->
       <div class="mb-3">
         <label class="form-label" for="name" data-en="Full Name" data-ha="Sunan Cikakke">Full Name</label>
         <input type="text" class="form-control" id="name" name="name"
                value="<?= htmlspecialchars($_POST['name'] ?? '') ?>"
-               required autocomplete="name"
+               required maxlength="120" autocomplete="name"
                data-placeholder-en="Enter your full name"
                data-placeholder-ha="Shigar da sunan cikakkensa"
                placeholder="Enter your full name">
@@ -91,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label class="form-label" for="email" data-en="Email Address" data-ha="Adireshin Imel">Email Address</label>
         <input type="email" class="form-control" id="email" name="email"
                value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-               required autocomplete="email"
+               required maxlength="191" autocomplete="email"
                placeholder="e.g. name@example.com">
       </div>
 
@@ -125,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="mb-3">
         <label class="form-label" for="password" data-en="Password" data-ha="Kalmar Sirri">Password</label>
         <input type="password" class="form-control" id="password" name="password"
-               required autocomplete="new-password"
+               required maxlength="72" autocomplete="new-password"
                data-placeholder-en="At least 6 characters"
                data-placeholder-ha="Aƙalla haruffa 6"
                placeholder="At least 6 characters">
@@ -135,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="mb-3">
         <label class="form-label" for="password_confirm" data-en="Confirm Password" data-ha="Tabbatar da Kalmar Sirri">Confirm Password</label>
         <input type="password" class="form-control" id="password_confirm" name="password_confirm"
-               required autocomplete="new-password"
+               required maxlength="72" autocomplete="new-password"
                data-placeholder-en="Repeat password"
                data-placeholder-ha="Maimaita kalmar sirri"
                placeholder="Repeat password">
@@ -160,6 +168,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/lamuni/public/assets/js/app.js"></script>
+<script src="/lamuni/public/assets/js/app.js?v=2"></script>
 </body>
 </html>

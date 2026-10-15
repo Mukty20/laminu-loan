@@ -148,14 +148,17 @@ lamuni/
 - `password_hash()` / `password_verify()` (bcrypt) — no plaintext passwords stored
 - PDO prepared statements throughout — no raw string-concatenated SQL
 - Server-side role checks on every protected route (`requireAdmin()`, `requireBorrower()`)
+- Session-bound CSRF tokens on login, registration, loan application, loan decision, and repayment forms
 - `session_regenerate_id(true)` on login
-- `htmlspecialchars()` + `strip_tags()` on all user-supplied output
+- User-supplied content is escaped when rendered; HTML is stripped from administrator decision notes
+- Repayment updates are transactional and cannot exceed the current outstanding balance
+- `.htaccess` blocks web requests to `.env`, `src/`, and `database/` when using the XAMPP project-directory setup
 
 ---
 
 ## Language Support
 
-The Hausa/English toggle is implemented via `data-en` / `data-ha` HTML attributes and a small vanilla JS function in `app.js`. The chosen language is stored in `localStorage` and applied on every page load. Technical terms (field labels, error messages, status values) retain their English forms where a Hausa equivalent is unclear, per report §2.2.
+The Hausa/English toggle is implemented via `data-en` / `data-ha` HTML attributes and a small vanilla JS function in `app.js`. The chosen language is stored in `localStorage` and a cookie, then applied on every page load. Technical terms (field labels, error messages, status values) retain their English forms where a Hausa equivalent is unclear, per report §2.2.
 
 ---
 

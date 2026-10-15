@@ -12,15 +12,19 @@ if (!empty($_SESSION['user_id']) && $_SESSION['user_role'] === 'admin') {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email    = trim($_POST['email']    ?? '');
-    $password = $_POST['password'] ?? '';
-
-    $result = Auth::login($email, $password, 'admin');
-    if ($result === true) {
-        header('Location: /lamuni/public/admin/dashboard.php');
-        exit;
+    if (!Auth::verifyCsrfToken($_POST['_csrf'] ?? null)) {
+        $error = 'Your session expired. Please reload the page and try again.';
     } else {
-        $error = $result;
+        $email    = trim($_POST['email']    ?? '');
+        $password = $_POST['password'] ?? '';
+
+        $result = Auth::login($email, $password, 'admin');
+        if ($result === true) {
+            header('Location: /lamuni/public/admin/dashboard.php');
+            exit;
+        } else {
+            $error = $result;
+        }
     }
 }
 ?>
@@ -54,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <form method="post" action="">
+      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
       <div class="mb-3">
         <label class="form-label" for="admin-email">Email Address</label>
         <input type="email" class="form-control" id="admin-email" name="email"
@@ -82,6 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/lamuni/public/assets/js/app.js"></script>
+<script src="/lamuni/public/assets/js/app.js?v=2"></script>
 </body>
 </html>

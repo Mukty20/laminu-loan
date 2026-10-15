@@ -64,9 +64,8 @@
     // Real-time phone validation
     const phoneInput = document.getElementById('phone');
     if (phoneInput) {
-      phoneInput.addEventListener('input', function () {
-        const phoneErr = document.getElementById('phone-error');
-        if (/^\d{11}$/.test(this.value.trim())) {
+    phoneInput.addEventListener('input', function () {
+      if (/^\d{11}$/.test(this.value.trim())) {
           this.classList.remove('is-invalid');
           this.classList.add('is-valid');
         } else {
@@ -107,7 +106,8 @@
 
   /* ── 3. Language Toggle (English / Hausa) ── */
   const LANG_KEY = 'lm_lang';
-  let currentLang = localStorage.getItem(LANG_KEY) || 'en';
+  const savedLang = localStorage.getItem(LANG_KEY);
+  let currentLang = savedLang === 'ha' ? 'ha' : 'en';
 
   const translations = {
     en: {
@@ -127,8 +127,11 @@
   }
 
   function applyLang(lang) {
+    lang = lang === 'ha' ? 'ha' : 'en';
     currentLang = lang;
     localStorage.setItem(LANG_KEY, lang);
+    document.cookie = LANG_KEY + '=' + lang + '; path=/lamuni/public; max-age=31536000; SameSite=Lax';
+    document.documentElement.lang = lang;
 
     // Toggle data-lang attributes
     document.querySelectorAll('[data-en][data-ha]').forEach(function (el) {
@@ -143,6 +146,7 @@
     // Update active button
     document.querySelectorAll('.lang-btn').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.lang === lang);
+      btn.setAttribute('aria-pressed', btn.dataset.lang === lang ? 'true' : 'false');
     });
   }
 
@@ -159,7 +163,9 @@
   /* ── 4. Auto-dismiss alerts after 6 s ── */
   document.querySelectorAll('.alert-dismissible').forEach(function (el) {
     setTimeout(function () {
-      const bsAlert = bootstrap && bootstrap.Alert ? bootstrap.Alert.getOrCreateInstance(el) : null;
+      const bsAlert = typeof bootstrap !== 'undefined' && bootstrap.Alert
+        ? bootstrap.Alert.getOrCreateInstance(el)
+        : null;
       if (bsAlert) bsAlert.close();
       else el.style.display = 'none';
     }, 6000);

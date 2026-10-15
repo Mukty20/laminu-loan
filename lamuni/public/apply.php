@@ -7,18 +7,25 @@ Auth::requireBorrower();
 
 $userId  = Auth::userId();
 $error   = '';
-$success = '';
+$success = $_SESSION['lamuni_flash_apply'] ?? '';
+unset($_SESSION['lamuni_flash_apply']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $amount   = (float)($_POST['amount']          ?? 0);
-    $duration = (int)($_POST['duration_months']   ?? 0);
-    $purpose  = trim($_POST['purpose']             ?? '');
-
-    $result = Loan::apply($userId, $amount, $duration, $purpose);
-    if (is_int($result)) {
-        $success = 'Your loan application has been submitted and is under review.';
+    if (!Auth::verifyCsrfToken($_POST['_csrf'] ?? null)) {
+        $error = 'Your session expired. Please reload the page and try again.';
     } else {
-        $error = $result;
+        $amount   = (float)($_POST['amount']          ?? 0);
+        $duration = (int)($_POST['duration_months']   ?? 0);
+        $purpose  = trim($_POST['purpose']             ?? '');
+
+        $result = Loan::apply($userId, $amount, $duration, $purpose);
+        if (is_int($result)) {
+            $_SESSION['lamuni_flash_apply'] = 'Your loan application has been submitted and is under review.';
+            header('Location: /lamuni/public/apply.php');
+            exit;
+        } else {
+            $error = $result;
+        }
     }
 }
 ?>
@@ -74,12 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <div class="card p-4">
         <form id="apply-form" method="post" action="">
+          <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
           <div class="mb-3">
             <label class="form-label" for="amount" data-en="Loan Amount (₦)" data-ha="Adadin Lamuni (₦)">Loan Amount (₦)</label>
             <input type="number" class="form-control" id="amount" name="amount"
                    value="<?= htmlspecialchars((string)($_POST['amount'] ?? '')) ?>"
-                   min="1000" step="500" required
+                   min="1000" max="9999999999.99" step="0.01" required
                    data-placeholder-en="e.g. 50000"
                    data-placeholder-ha="misali 50000"
                    placeholder="e.g. 50000">
@@ -92,8 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <select class="form-select" id="duration_months" name="duration_months" required>
               <option value="" data-en="Select duration" data-ha="Zaɓi tsawon lokaci">Select duration</option>
               <?php foreach ([3,6,9,12,18,24,36,48,60] as $m): ?>
-                <option value="<?= $m ?>" <?= (($_POST['duration_months'] ?? '') == $m ? 'selected' : '') ?>>
-                  <?= $m ?> <span data-en="months" data-ha="watanni">months</span>
+                <option value="<?= $m ?>" data-en="<?= $m ?> months" data-ha="<?= $m ?> watanni"
+                  <?= (($_POST['duration_months'] ?? '') == $m ? 'selected' : '') ?>>
+                  <?= $m ?> <?= $m === 1 ? 'month' : 'months' ?>
                 </option>
               <?php endforeach; ?>
             </select>
@@ -102,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="mb-4">
             <label class="form-label" for="purpose" data-en="Purpose of Loan" data-ha="Manufar Lamuni">Purpose of Loan</label>
             <textarea class="form-control" id="purpose" name="purpose" rows="4" required
+                      maxlength="5000"
                       data-placeholder-en="Briefly describe what you need the loan for"
                       data-placeholder-ha="Taƙaice bayyana dalilan da kuka nemi lamunin"
                       placeholder="Briefly describe what you need the loan for"
@@ -120,6 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/lamuni/public/assets/js/app.js"></script>
+<script src="/lamuni/public/assets/js/app.js?v=2"></script>
 </body>
 </html>

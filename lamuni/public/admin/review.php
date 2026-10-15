@@ -10,23 +10,28 @@ $loanId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $loan   = $loanId ? Loan::getById($loanId) : null;
 
 $error   = '';
-$success = '';
+$success = $_SESSION['lamuni_flash_review'] ?? '';
+unset($_SESSION['lamuni_flash_review']);
 
 // Handle approve/reject POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $loan) {
-    $decision = $_POST['decision'] ?? '';
-    $note     = trim($_POST['note'] ?? '');
-
-    if (!in_array($decision, ['Approved', 'Rejected'], true)) {
-        $error = 'Invalid decision.';
+    if (!Auth::verifyCsrfToken($_POST['_csrf'] ?? null)) {
+        $error = 'Your session expired. Please reload the page and try again.';
     } else {
-        $result = Loan::decide((int)$loan['id'], Auth::userId(), $decision, $note);
-        if ($result) {
-            $success = "Loan #{$loan['id']} has been {$decision}.";
-            // Refresh loan data
-            $loan = Loan::getById($loanId);
+        $decision = $_POST['decision'] ?? '';
+        $note     = trim($_POST['note'] ?? '');
+
+        if (!in_array($decision, ['Approved', 'Rejected'], true)) {
+            $error = 'Invalid decision.';
         } else {
-            $error = 'Could not process decision. The loan may not be in Pending status.';
+            $result = Loan::decide((int)$loan['id'], Auth::userId(), $decision, $note);
+            if ($result) {
+                $_SESSION['lamuni_flash_review'] = "Loan #{$loan['id']} has been {$decision}.";
+                header('Location: /lamuni/public/admin/review.php?id=' . (int)$loan['id']);
+                exit;
+            } else {
+                $error = 'Could not process decision. The loan may not be in Pending status.';
+            }
         }
     }
 }
@@ -179,6 +184,7 @@ function statusBadge(string $status): string {
             <div class="card-header">MAKE A DECISION</div>
             <div class="p-4">
               <form method="post" action="?id=<?= (int)$loan['id'] ?>">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <div class="mb-3">
                   <label class="form-label" for="decision">Decision</label>
                   <select class="form-select" id="decision" name="decision" required>
@@ -233,6 +239,6 @@ function statusBadge(string $status): string {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/lamuni/public/assets/js/app.js"></script>
+<script src="/lamuni/public/assets/js/app.js?v=2"></script>
 </body>
 </html>

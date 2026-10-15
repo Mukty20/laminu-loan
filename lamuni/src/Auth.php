@@ -24,11 +24,19 @@ class Auth
         string $password
     ): true|string {
         // Server-side validation
-        if (empty($name) || empty($email) || empty($password)) {
+        $name = trim($name);
+        $email = strtolower(trim($email));
+        if ($name === '' || $email === '' || $password === '') {
             return 'Name, email, and password are required.';
+        }
+        if (!preg_match('/^.{2,120}$/us', $name)) {
+            return 'Name must be between 2 and 120 characters.';
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return 'Invalid email address.';
+        }
+        if (strlen($email) > 191) {
+            return 'Email address is too long.';
         }
         if (!preg_match('/^\d{11}$/', $phone)) {
             return 'Phone number must be exactly 11 digits.';
@@ -38,6 +46,9 @@ class Auth
         }
         if (strlen($password) < 6) {
             return 'Password must be at least 6 characters.';
+        }
+        if (strlen($password) > 72) {
+            return 'Password must be 72 bytes or fewer.';
         }
 
         $pdo = Database::getConnection();
@@ -56,7 +67,7 @@ class Auth
              VALUES (:name, :email, :phone, :bvn, :password_hash, 'borrower')"
         );
         $stmt->execute([
-            ':name'          => htmlspecialchars(strip_tags($name)),
+            ':name'          => $name,
             ':email'         => $email,
             ':phone'         => $phone,
             ':bvn'           => ($bvn !== '' ? $bvn : null),
@@ -80,6 +91,7 @@ class Auth
      */
     public static function login(string $email, string $password, string $role): true|string
     {
+        $email = strtolower(trim($email));
         if (empty($email) || empty($password)) {
             return 'Email and password are required.';
         }
@@ -122,7 +134,6 @@ class Auth
             session_start();
         }
         $userId = $_SESSION['user_id'] ?? null;
-        $email  = $_SESSION['user_email'] ?? 'unknown';
 
         if ($userId) {
             require_once __DIR__ . '/AuditLog.php';
@@ -184,5 +195,31 @@ class Auth
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
         return $_SESSION['user_role'] ?? null;
+    }
+
+    /** Return a session-bound token for protecting state-changing forms. */
+    public static function csrfToken(): string
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['csrf_token'];
+    }
+
+    /** Verify a state-changing request's session-bound token. */
+    public static function verifyCsrfToken(mixed $token): bool
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        return isset($_SESSION['csrf_token'])
+            && is_string($token)
+            && hash_equals($_SESSION['csrf_token'], $token);
     }
 }
